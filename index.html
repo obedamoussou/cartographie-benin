@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bénin Diplomatie</title>
+<meta name="description" content="Cartographie interactive des relations diplomatiques et de coopération du Bénin.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050912;
+  --panel:rgba(12,19,34,.72);
+  --panel-solid:#0c1322;
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.16);
+  --text:#e9eef7;
+  --muted:#8a96ad;
+  --faint:#5b6782;
+  --green:#008751;
+  --yellow:#fcd116;
+  --red:#e8112d;
+  --lvl-high:#2fd08a;
+  --lvl-mid:#f4c542;
+  --lvl-low:#ff7a59;
+  --lvl-none:#6d8bd6;
+  --radius:16px;
+  --shadow:0 20px 60px -20px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+#globe{position:fixed;inset:0}
+.glass{background:var(--panel);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+/* ---------- top bar ---------- */
+.topbar{position:fixed;top:16px;left:16px;right:16px;display:flex;align-items:center;gap:14px;z-index:20;pointer-events:none}
+.topbar>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:12px;padding:10px 16px 10px 12px}
+.flagbar{width:6px;height:34px;border-radius:3px;background:linear-gradient(180deg,var(--green) 0 50%,var(--yellow) 50% 75%,var(--red) 75%)}
+.brand h1{margin:0;font-family:Fraunces,serif;font-weight:600;font-size:18px;letter-spacing:.2px;line-height:1.1}
+.brand small{display:block;color:var(--muted);font-size:11.5px;letter-spacing:.4px;text-transform:uppercase;margin-top:2px}
+.stats{display:flex;gap:6px;padding:6px}
+.stat{padding:6px 14px;border-radius:11px;min-width:84px}
+.stat b{display:block;font-family:Fraunces,serif;font-size:20px;font-weight:600;line-height:1.1}
+.stat span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.spacer{flex:1}
+.search{position:relative;width:300px}
+.search input{width:100%;padding:13px 16px 13px 40px;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(18px);color:var(--text);font:inherit;outline:none;box-shadow:var(--shadow)}
+.search input:focus{border-color:rgba(252,209,22,.5)}
+.search>svg{position:absolute;z-index:2;pointer-events:none;left:14px;top:50%;transform:translateY(-50%);opacity:.6}
+.suggest{position:absolute;top:calc(100% + 6px);left:0;right:0;max-height:320px;overflow:auto;padding:6px;display:none}
+.suggest.open{display:block}
+.suggest button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;background:none;border-radius:10px;text-align:left}
+.suggest button:hover,.suggest button.active{background:rgba(255,255,255,.07)}
+.suggest em{margin-left:auto;font-style:normal;font-size:11px;color:var(--muted)}
+
+/* ---------- left panel ---------- */
+.side{position:fixed;left:16px;top:96px;bottom:16px;width:290px;display:flex;flex-direction:column;z-index:15;overflow:hidden}
+.side header{padding:16px 16px 10px}
+.side h2{margin:0 0 10px;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:12px;color:var(--muted);transition:.2s}
+.chip:hover{color:var(--text);border-color:var(--line-strong)}
+.chip.on{color:var(--text);background:rgba(255,255,255,.09);border-color:var(--line-strong)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+.list{flex:1;overflow:auto;padding:4px 8px 12px}
+.item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border:0;background:none;border-radius:12px;text-align:left;transition:background .15s}
+.item:hover{background:rgba(255,255,255,.05)}
+.item.sel{background:rgba(252,209,22,.09);box-shadow:inset 0 0 0 1px rgba(252,209,22,.25)}
+.item .nm{font-weight:500}
+.item .sub{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.item .dot{margin-left:auto}
+.flag{width:26px;height:18px;border-radius:4px;object-fit:cover;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.12);background:#1b2438}
+.side footer{padding:10px 16px 14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.sync{display:inline-flex;align-items:center;gap:7px}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--lvl-high);box-shadow:0 0 8px var(--lvl-high)}
+.sync.off i{background:var(--lvl-low);box-shadow:0 0 8px var(--lvl-low)}
+.iconbtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:11.5px}
+.iconbtn:hover{border-color:var(--line-strong)}
+.iconbtn.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{padding:20px 12px;color:var(--faint);font-size:13px;text-align:center}
+
+/* ---------- drawer ---------- */
+.drawer{position:fixed;top:16px;right:16px;bottom:16px;width:440px;z-index:25;display:flex;flex-direction:column;overflow:hidden;transform:translateX(calc(100% + 32px));transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.drawer.open{transform:none}
+.hero{position:relative;padding:22px 22px 18px;border-bottom:1px solid var(--line);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 100% 0%,var(--accent,rgba(109,139,214,.25)),transparent 60%);opacity:.55;pointer-events:none}
+.hero .close{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);display:grid;place-items:center}
+.hero .close:hover{border-color:var(--line-strong)}
+.hero .flag{width:48px;height:34px;border-radius:6px}
+.hero h2{position:relative;margin:14px 0 2px;font-family:Fraunces,serif;font-size:32px;font-weight:600;letter-spacing:-.3px;line-height:1.05}
+.hero .cap{position:relative;color:var(--muted);font-size:13px}
+.badges{position:relative;display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:500;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.body{flex:1;overflow:auto;padding:16px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.card{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025);padding:14px 16px;animation:rise .5s both}
+.card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}.card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}.card:nth-child(6){animation-delay:.25s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+.card h3{margin:0 0 12px;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.card h3 .n{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--faint)}
+.amb{display:flex;align-items:center;gap:14px}
+.avatar{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-family:Fraunces,serif;font-size:17px;font-weight:600;background:linear-gradient(135deg,rgba(0,135,81,.5),rgba(252,209,22,.35));border:1px solid var(--line-strong);flex:none}
+.amb b{display:block;font-size:15.5px;font-weight:600}
+.amb span{color:var(--muted);font-size:12.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.kv{padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.kv span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.kv b{font-weight:500;font-size:13.5px;word-break:break-word}
+.kpi b{font-family:Fraunces,serif;font-size:22px;font-weight:600}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{padding:6px 10px;border-radius:9px;font-size:12px;background:rgba(0,135,81,.14);border:1px solid rgba(47,208,138,.22);color:#bff3d9}
+.tl{position:relative;padding-left:20px;display:flex;flex-direction:column;gap:14px}
+.tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:linear-gradient(var(--line-strong),transparent)}
+.tl-i{position:relative}
+.tl-i::before{content:"";position:absolute;left:-19px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--panel-solid);border:2px solid var(--c,var(--muted))}
+.tl-i small{display:block;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--c,var(--muted));font-weight:600;margin-bottom:3px}
+.tl-i p{margin:0;line-height:1.5}
+.tl-i time{display:block;color:var(--faint);font-size:12px;margin-top:2px}
+.acc{padding:12px 0;border-top:1px solid var(--line)}
+.acc:first-of-type{border-top:0;padding-top:0}
+.acc-t{display:flex;gap:10px;align-items:flex-start}
+.acc-t b{font-weight:600;line-height:1.4;flex:1}
+.status{flex:none;padding:3px 8px;border-radius:7px;font-size:11px;font-weight:600;white-space:nowrap}
+.acc-m{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;color:var(--muted);font-size:12px}
+.acc-m b{color:var(--text);font-weight:500}
+.prog{margin-top:10px;height:5px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--green),var(--yellow))}
+.prog-l{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-top:5px}
+.contact{display:flex;flex-direction:column;gap:8px}
+.contact a,.contact div{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none}
+.contact a:hover{color:var(--yellow)}
+.contact svg{opacity:.55;flex:none}
+.tbd{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;color:var(--faint);background:rgba(255,255,255,.04);border:1px dashed var(--line-strong);font-weight:400;font-family:Inter,sans-serif}
+.actions{display:flex;gap:8px;padding:14px 16px;border-top:1px solid var(--line)}
+.btn{flex:1;display:inline-flex;justify-content:center;align-items:center;gap:8px;padding:11px 12px;border-radius:11px;border:1px solid var(--line-strong);background:rgba(255,255,255,.04);text-decoration:none;font-weight:500;font-size:13px;transition:.2s}
+.btn:hover{background:rgba(255,255,255,.08)}
+.btn.primary{background:linear-gradient(135deg,var(--green),#00a463);border-color:transparent;color:#fff}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn[aria-disabled=true]{opacity:.35;pointer-events:none}
+.nodata{text-align:center;padding:26px 10px;color:var(--muted);line-height:1.6}
+.nodata b{display:block;color:var(--text);font-family:Fraunces,serif;font-size:18px;margin-bottom:6px}
+
+/* ---------- tooltip & misc ---------- */
+.scene-tooltip{font-family:Inter,sans-serif!important}
+.tip{padding:9px 12px;border-radius:11px;background:rgba(8,13,24,.92);border:1px solid var(--line-strong);display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.tip b{font-weight:600;font-size:13px}
+.tip span{display:block;font-size:11.5px;color:var(--muted)}
+.legend{position:fixed;left:322px;bottom:16px;z-index:15;display:flex;gap:14px;padding:10px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.loader{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);transition:opacity .8s}
+.loader.hide{opacity:0;pointer-events:none}
+.loader div{text-align:center;color:var(--muted);font-size:13px}
+.loader .flagbar{width:120px;height:4px;margin:0 auto 18px;background:linear-gradient(90deg,var(--green) 0 50%,var(--yellow) 50% 75%,var(--red) 75%);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35;transform:scaleX(.6)}}
+.toggle-side{display:none}
+.search{transition:margin .5s cubic-bezier(.2,.8,.2,1)}
+@media (min-width:761px){body.drawer-open .search{margin-right:456px}}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:8px}
+
+@media (max-width:1100px){.stats{display:none}}
+@media (max-width:760px){
+  .topbar{top:12px;left:12px;right:12px;flex-wrap:wrap;gap:8px}
+  .brand{flex:1}
+  .search{width:100%;order:3}
+  .toggle-side{display:grid;place-items:center;width:46px;height:46px;border-radius:14px}
+  .side{top:auto;left:12px;right:12px;bottom:12px;width:auto;height:46vh;transform:translateY(calc(100% + 24px));transition:transform .4s}
+  .side.open{transform:none}
+  .legend{display:none}
+  .drawer{top:auto;left:12px;right:12px;bottom:12px;width:auto;height:78vh;transform:translateY(calc(100% + 24px))}
+  .hero h2{font-size:26px}
+}
+</style>
+</head>
+<body>
+<div id="globe"></div>
+
+<div class="loader" id="loader"><div><div class="flagbar"></div>Chargement de la cartographie…</div></div>
+
+<div class="topbar">
+  <div class="brand glass">
+    <div class="flagbar"></div>
+    <div><h1>Bénin · Diplomatie</h1><small>Cartographie de la coopération</small></div>
+  </div>
+  <div class="stats glass" id="stats"></div>
+  <div class="spacer"></div>
+  <button class="toggle-side glass" id="toggleSide" aria-label="Liste des partenaires">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+  </button>
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" placeholder="Rechercher un pays…" autocomplete="off">
+    <div class="suggest glass" id="suggest"></div>
+  </div>
+</div>
+
+<aside class="side glass" id="side">
+  <header>
+    <h2>Partenaires recensés</h2>
+    <div class="filters" id="filters"></div>
+  </header>
+  <div class="list" id="list"></div>
+  <footer>
+    <span class="sync" id="sync"><i></i><span>Synchronisation…</span></span>
+    <button class="iconbtn" id="refresh" title="Recharger depuis le Google Sheet">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Actualiser
+    </button>
+  </footer>
+</aside>
+
+<div class="legend glass" id="legend"></div>
+
+<aside class="drawer glass" id="drawer" aria-live="polite"></aside>
+
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.1/dist/globe.gl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+/* =========================================================
+   CONFIGURATION — identifiant du Google Sheet (doit être
+   partagé en « Tous les utilisateurs disposant du lien »)
+   ========================================================= */
+const SHEET_ID = '1wUaIkNMKlrOuMx7bmhRVy4GqiLMjSRnSoKs5wNtYzzY';
+const TABS = { partners: { name: 'Partenaires', gid: '0' }, accords: { name: 'Accords', gid: '882619615' } };
+const BENIN = { lat: 6.37, lng: 2.43, a2: 'BJ' }; // Cotonou
+
+/* Copie de secours, utilisée si le Sheet est injoignable */
+const SNAPSHOT = {
+  partners: [
+    ['', 'Pays', ' Capitale', 'Types de représentation diplomatique', "Pays de résidence de l'ambassadeur(e)", "Nom et prenom de l'ambassadeur(e)", 'Date de nomination', 'Noms et prenoms des points focaux', 'Email des points focaux', 'Telephone des points focaux', 'Site officiel', 'Domaines de coopération', "Niveau d'activité de la relation", 'Nombre de projets financés à date', 'Montant mobilisé à date', 'Date de la dernière audience', 'Dernière actualité commune', 'Prochaine actualité à suivre', 'Date de la dernière interaction', 'Date de la prochaine interaction', 'Prochaines actions', 'Lien du dossier complet du partenaire'],
+    ['', 'France', 'Paris', 'Ambassade', 'Benin', 'Nadège CHOUAT', '05/07/2024', 'A preciser', 'A preciser', 'A preciser', 'https://bj.diplomatie.gouv.fr/', 'Education et formation professionnelles, Enseignement supérieur et recherche, Culture et patrimoine, Agriculture et développement rural, Eau et Assainissement, Santé publique, Environnement et climat', 'Elevé', 'A préciser', 'A préciser', 'A preciser', 'Visite du président Romuald Wadagni en France le 04 Octobre 2026 et signature de trois accords de financement', 'Visite du président Emmanuel Macron au Benin dans le cadre de sa tournée africaine', 'A préciser', 'A préciser', 'A préciser', 'A préciser'],
+    ['', 'Allemagne'], ['', 'Maroc'], ['', 'Afrique du Sud']
+  ],
+  accords: [
+    ['', 'Pays', 'Institutions partenaires', "Intitulé de l'accord", 'Domaine de la coopération', 'Entité bénéficiaire', 'Date de démarrage', 'Date de fin', 'Nature ', 'Montant ', 'Résultats attendus', 'Statut'],
+    ['', 'France ', 'AFD', "Appui à la modernisation du système d'information de la Direction Générale des Impots", 'Numérique et innovation', 'Direction Générale des Impots', '1/11/2022', '1/11/2027', 'Subvention', '2636947140', '', 'En cours'],
+    ['', 'Allemagne'], ['', 'Etats Unis'], ['', 'Afrique du Sud']
+  ]
+};
+
+/* ---------- utilitaires ---------- */
+const norm = s => (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const esc = s => (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isTbd = v => !v || /^(a|à)\s*preciser$/i.test(v.normalize('NFD').replace(/[̀-ͯ]/g, '').trim()) || /^(n\/?a|-|—|nd)$/i.test(v.trim());
+const val = v => isTbd(v) ? '<span class="tbd">À préciser</span>' : esc(v);
+const $ = id => document.getElementById(id);
+
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (c !== '\r') cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+function parseDate(v) {
+  if (isTbd(v)) return null;
+  const m = v.trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return new Date(y, +m[2] - 1, +m[1]); }
+  const iso = v.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+  return null;
+}
+function fmtDate(v) {
+  const d = parseDate(v);
+  if (!d) return isTbd(v) ? null : v;
+  return `${d.getDate() === 1 ? '1er' : d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+function since(v) {
+  const d = parseDate(v); if (!d) return '';
+  const months = Math.round((Date.now() - d) / 2.63e9);
+  if (months < 0) return 'à venir';
+  if (months < 1) return 'ce mois-ci';
+  if (months < 12) return `il y a ${months} mois`;
+  const y = Math.floor(months / 12);
+  return `il y a ${y} an${y > 1 ? 's' : ''}`;
+}
+function fmtNum(v) {
+  if (isTbd(v)) return null;
+  const n = Number(v.toString().replace(/[\s ]/g, '').replace(',', '.'));
+  if (!isFinite(n)) return v;
+  if (n >= 1e9) return (n / 1e9).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' Md';
+  if (n >= 1e6) return (n / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' M';
+  return n.toLocaleString('fr-FR');
+}
+const fullNum = v => { const n = Number((v || '').replace(/[\s ]/g, '')); return isFinite(n) && n ? n.toLocaleString('fr-FR') : ''; };
+const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+const flagUrl = a2 => a2 ? `https://flagcdn.com/w80/${a2.toLowerCase()}.png` : '';
+const flagImg = (a2, cls = 'flag') => a2 ? `<img class="${cls}" src="${flagUrl(a2)}" alt="" loading="lazy">` : `<span class="${cls}"></span>`;
+
+/* ---------- niveaux d'activité ---------- */
+const LEVELS = {
+  high: { label: 'Élevé', color: '#2fd08a' },
+  mid: { label: 'Moyen', color: '#f4c542' },
+  low: { label: 'Faible', color: '#ff7a59' },
+  none: { label: 'Non renseigné', color: '#6d8bd6' }
+};
+function levelOf(v) {
+  const n = norm(v);
+  if (!n || isTbd(v)) return 'none';
+  if (/^(eleve|fort|haut|tres|intense|strategique)/.test(n)) return 'high';
+  if (/^(moyen|modere|intermediaire)/.test(n)) return 'mid';
+  if (/^(faible|bas|limite|dormant|inactif)/.test(n)) return 'low';
+  return 'none';
+}
+function statusStyle(s) {
+  const n = norm(s);
+  if (/cours|actif|execution/.test(n)) return 'background:rgba(47,208,138,.15);color:#7ff0bc';
+  if (/termine|cloture|acheve/.test(n)) return 'background:rgba(109,139,214,.18);color:#b3c6f5';
+  if (/negoc|prepar|attente|signature/.test(n)) return 'background:rgba(244,197,66,.15);color:#f8d97a';
+  if (/suspend|annul/.test(n)) return 'background:rgba(255,122,89,.15);color:#ffab95';
+  return 'background:rgba(255,255,255,.07);color:var(--muted)';
+}
+
+/* ---------- correspondance pays (ISO numérique → alpha-2) ---------- */
+const NUM2A2 = Object.fromEntries('004AF 008AL 010AQ 012DZ 024AO 031AZ 032AR 036AU 040AT 044BS 048BH 050BD 051AM 056BE 064BT 068BO 070BA 072BW 076BR 084BZ 090SB 096BN 100BG 104MM 108BI 112BY 116KH 120CM 124CA 132CV 140CF 144LK 148TD 152CL 156CN 158TW 170CO 174KM 178CG 180CD 188CR 191HR 192CU 196CY 203CZ 204BJ 208DK 214DO 218EC 222SV 226GQ 231ET 232ER 233EE 238FK 242FJ 246FI 250FR 260TF 262DJ 266GA 268GE 270GM 275PS 276DE 288GH 300GR 304GL 320GT 324GN 328GY 332HT 340HN 348HU 352IS 356IN 360ID 364IR 368IQ 372IE 376IL 380IT 384CI 388JM 392JP 398KZ 400JO 404KE 408KP 410KR 414KW 417KG 418LA 422LB 426LS 428LV 430LR 434LY 440LT 442LU 450MG 454MW 458MY 462MV 466ML 470MT 478MR 480MU 484MX 496MN 498MD 499ME 504MA 508MZ 512OM 516NA 524NP 528NL 540NC 548VU 554NZ 558NI 562NE 566NG 578NO 586PK 591PA 598PG 600PY 604PE 608PH 616PL 620PT 624GW 626TL 630PR 634QA 642RO 643RU 646RW 682SA 686SN 688RS 690SC 694SL 702SG 703SK 704VN 705SI 706SO 710ZA 716ZW 724ES 728SS 729SD 732EH 740SR 748SZ 752SE 756CH 760SY 762TJ 764TH 768TG 780TT 784AE 788TN 792TR 795TM 800UG 804UA 807MK 818EG 826GB 834TZ 840US 854BF 858UY 860UZ 862VE 887YE 894ZM'.split(' ').map(s => [s.slice(0, 3), s.slice(3)]));
+const ALIASES = {
+  rdc: 'CD', rdcongo: 'CD', republiquedemocratiqueducongo: 'CD', congokinshasa: 'CD',
+  congo: 'CG', republiqueducongo: 'CG', congobrazzaville: 'CG',
+  usa: 'US', etatsunis: 'US', etatsunisdamerique: 'US', amerique: 'US',
+  angleterre: 'GB', grandebretagne: 'GB', royaumeuni: 'GB',
+  palestine: 'PS', birmanie: 'MM', myanmar: 'MM', swaziland: 'SZ', eswatini: 'SZ',
+  tchequie: 'CZ', republiquetcheque: 'CZ', macedoine: 'MK', macedoinedunord: 'MK',
+  timororiental: 'TL', capvert: 'CV', caboverde: 'CV', cotedivoire: 'CI', coreedusud: 'KR', coreedunord: 'KP',
+  chine: 'CN', taiwan: 'TW', vatican: 'VA', saintsiege: 'VA', kosovo: 'XK', emirats: 'AE', emiratsarabesunis: 'AE',
+  turquie: 'TR', turkiye: 'TR', russie: 'RU', federationderussie: 'RU', iran: 'IR', syrie: 'SY', laos: 'LA', bolivie: 'BO', venezuela: 'VE', tanzanie: 'TZ', moldavie: 'MD', vietnam: 'VN', guineebissau: 'GW', saotomeetprincipe: 'ST', gambie: 'GM'
+};
+const DN = new Intl.DisplayNames(['fr'], { type: 'region', fallback: 'none' });
+const NAME2A2 = {};
+(() => {
+  const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (const a of L) for (const b of L) {
+    const code = a + b; if (/^(Q[M-Z]|X[A-JL-Z]|Z[A-Z]|AA|EU|EZ|UN|FX|CS|YU|AN|BU|DD|NT|SU|TP|ZR|DY|HV|NH|RH|VD|YD|CP|DG|EA|IC|TA|AC|CQ)$/.test(code)) continue;
+    let n; try { n = DN.of(code); } catch { continue; }
+    if (n && n !== code && !NAME2A2[norm(n)]) NAME2A2[norm(n)] = code;
+  }
+  Object.assign(NAME2A2, ALIASES);
+})();
+const a2FromName = name => NAME2A2[norm(name)] || null;
+const frName = (a2, fallback) => (a2 && DN.of(a2)) || fallback;
+
+/* ---------- état ---------- */
+const state = { features: [], byA2: {}, partners: [], accords: [], selected: null, filter: 'all', hover: null };
+
+/* ---------- lecture des données ---------- */
+async function fetchTab(tab) {
+  const urls = [
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${tab.gid}`,
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(tab.name)}`
+  ];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u + '&_=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (t.trim().startsWith('<')) continue; // page de connexion → feuille privée
+      return parseCSV(t);
+    } catch { /* essai suivant */ }
+  }
+  throw new Error('inaccessible');
+}
+
+/* Transforme un tableau brut en objets, en repérant la ligne d'en-tête (celle qui contient « Pays ») */
+function toRecords(rows) {
+  const hi = rows.findIndex(r => r.some(c => norm(c) === 'pays'));
+  if (hi < 0) return { headers: [], records: [] };
+  const headers = rows[hi].map(h => h.trim());
+  const pi = headers.findIndex(h => norm(h) === 'pays');
+  const records = rows.slice(hi + 1)
+    .filter(r => (r[pi] || '').trim())
+    .map(r => { const o = { _cells: {} }; headers.forEach((h, i) => { if (h) o._cells[h] = (r[i] || '').trim(); }); o.pays = r[pi].trim(); return o; });
+  return { headers: headers.filter(Boolean), records };
+}
+/* Récupère une valeur par préfixe d'en-tête normalisé — résiste aux fautes et espaces */
+function pick(rec, ...prefixes) {
+  for (const [h, v] of Object.entries(rec._cells)) {
+    const n = norm(h);
+    if (prefixes.some(p => n.startsWith(p))) return v;
+  }
+  return '';
+}
+const PARTNER_FIELDS = {
+  capitale: ['capitale'], type: ['typesderepresentation', 'typederepresentation'], residence: ['paysderesidence'],
+  ambassadeur: ['nometprenom', 'nomsetprenomdelamb', 'ambassadeur'], nomination: ['datedenomination'],
+  pfNoms: ['nomsetprenomsdespoints', 'nometprenomsdespoints', 'pointsfocaux'], pfEmail: ['emaildespoints', 'email'], pfTel: ['telephonedespoints', 'telephone'],
+  site: ['siteofficiel'], domaines: ['domainesdecooperation', 'domainedecooperation'], niveau: ['niveaudactivite', 'niveau'],
+  projets: ['nombredeprojets'], montant: ['montantmobilise'], audience: ['datedeladerniereaudience'],
+  actu: ['derniereactualite'], prochActu: ['prochaineactualite'], lastInt: ['datedeladerniereinteraction'], nextInt: ['datedelaprochaineinteraction'],
+  actions: ['prochainesactions'], dossier: ['liendudossier']
+};
+const ACCORD_FIELDS = {
+  institution: ['institution'], intitule: ['intitule'], domaine: ['domaine'], beneficiaire: ['entitebeneficiaire', 'beneficiaire'],
+  debut: ['datededemarrage', 'datededebut'], fin: ['datedefin'], nature: ['nature'], montant: ['montant'], resultats: ['resultats'], statut: ['statut']
+};
+function mapFields(rec, spec) {
+  const o = { pays: rec.pays, _cells: rec._cells, _used: new Set(Object.keys(rec._cells).filter(h => norm(h) === 'pays')) };
+  for (const [k, prefixes] of Object.entries(spec)) {
+    for (const [h, v] of Object.entries(rec._cells)) {
+      const n = norm(h);
+      if (!o._used.has(h) && prefixes.some(p => n.startsWith(p))) { o[k] = v; o._used.add(h); break; }
+    }
+    o[k] ??= '';
+  }
+  return o;
+}
+
+async function loadData() {
+  let p, a, live = true;
+  try { [p, a] = await Promise.all([fetchTab(TABS.partners), fetchTab(TABS.accords)]); }
+  catch { p = SNAPSHOT.partners; a = SNAPSHOT.accords; live = false; }
+  const partners = toRecords(p).records.map(r => mapFields(r, PARTNER_FIELDS));
+  const accords = toRecords(a).records.map(r => mapFields(r, ACCORD_FIELDS));
+  partners.forEach(pt => {
+    pt.a2 = a2FromName(pt.pays);
+    pt.name = frName(pt.a2, pt.pays);
+    pt.level = levelOf(pt.niveau);
+    pt.accords = accords.filter(ac => (ac.a2 ??= a2FromName(ac.pays)) ? ac.a2 === pt.a2 : norm(ac.pays) === norm(pt.pays));
+    pt.filled = Object.entries(pt._cells).some(([h, v]) => norm(h) !== 'pays' && v && !isTbd(v));
+  });
+  partners.sort((x, y) => x.name.localeCompare(y.name, 'fr'));
+  state.partners = partners; state.accords = accords;
+  setSync(live);
+}
+
+function setSync(live) {
+  const el = $('sync');
+  el.classList.toggle('off', !live);
+  const t = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  el.querySelector('span').textContent = live ? `Sheet synchronisé · ${t}` : 'Hors ligne · copie locale';
+}
+
+/* ---------- globe ---------- */
+let globe;
+function partnerOf(f) { return f && state.partners.find(p => p.a2 && p.a2 === f.a2); }
+function capColor(f) {
+  if (f.a2 === BENIN.a2) return 'rgba(252,209,22,.95)';
+  const p = partnerOf(f);
+  const sel = state.selected && state.selected.a2 === f.a2;
+  if (p) {
+    const dim = state.filter !== 'all' && p.level !== state.filter;
+    const c = d3.color(LEVELS[p.level].color);
+    c.opacity = dim ? .15 : sel ? .95 : (state.hover === f ? .9 : .62);
+    return c.formatRgb();
+  }
+  return sel || state.hover === f ? 'rgba(170,190,230,.35)' : 'rgba(150,170,210,.09)';
+}
+function altitude(f) {
+  if (state.selected && state.selected.a2 === f.a2) return .05;
+  if (state.hover === f) return .025;
+  if (f.a2 === BENIN.a2) return .02;
+  return partnerOf(f) ? .012 : .006;
+}
+
+async function initGlobe() {
+  const topo = await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json')).json();
+  state.features = topojson.feature(topo, topo.objects.countries).features.map(f => {
+    f.a2 = NUM2A2[f.id] || ({ Kosovo: 'XK' })[f.properties.name] || null;
+    f.name = frName(f.a2, f.properties.name);
+    // centroïde du plus grand polygone (évite que la Guyane décale la France, etc.)
+    let main = f.geometry;
+    if (main.type === 'MultiPolygon') {
+      const best = main.coordinates.map(c => ({ type: 'Polygon', coordinates: c })).sort((a, b) => d3.geoArea(b) - d3.geoArea(a))[0];
+      main = best;
+    }
+    const [lng, lat] = d3.geoCentroid(main);
+    f.center = { lat, lng };
+    if (f.a2) state.byA2[f.a2] = f;
+    return f;
+  });
+
+  globe = new Globe($('globe'), { animateIn: true })
+    .backgroundColor('rgba(0,0,0,0)')
+    .backgroundImageUrl('https://cdn.jsdelivr.net/npm/three-globe@2.42.0/example/img/night-sky.png')
+    .showAtmosphere(true).atmosphereColor('#4f8cff').atmosphereAltitude(.2)
+    .polygonsData(state.features)
+    .polygonCapColor(capColor)
+    .polygonSideColor(f => partnerOf(f) || f.a2 === BENIN.a2 ? 'rgba(0,0,0,.25)' : 'rgba(0,0,0,0)')
+    .polygonStrokeColor(f => f.a2 === BENIN.a2 ? '#fff4b0' : partnerOf(f) ? 'rgba(255,255,255,.55)' : 'rgba(160,180,220,.22)')
+    .polygonAltitude(altitude)
+    .polygonsTransitionDuration(350)
+    .polygonLabel(f => {
+      const p = partnerOf(f);
+      const sub = f.a2 === BENIN.a2 ? 'République du Bénin' : p ? `${esc(p.type && !isTbd(p.type) ? p.type : 'Partenaire')} · ${LEVELS[p.level].label}` : 'Non recensé';
+      return `<div class="tip">${flagImg(f.a2)}<div><b>${esc(f.name)}</b><span>${sub}</span></div></div>`;
+    })
+    .onPolygonHover(f => { state.hover = f; $('globe').style.cursor = f ? 'pointer' : 'grab'; refreshPolygons(); })
+    .onPolygonClick(f => select(f.a2 ? (partnerOf(f) || { a2: f.a2, name: f.name, pays: f.name, ghost: true }) : { a2: null, name: f.name, pays: f.name, ghost: true }, f))
+    .onGlobeClick(() => closeDrawer())
+    .arcColor(d => { const c = d3.color(d.color); return [c.copy({ opacity: .05 }).formatRgb(), c.formatRgb(), c.copy({ opacity: .05 }).formatRgb()]; })
+    .arcStroke(d => d.sel ? .9 : .45)
+    .arcDashLength(.45).arcDashGap(.25).arcDashInitialGap(() => Math.random())
+    .arcDashAnimateTime(2600).arcAltitudeAutoScale(.45)
+    .arcsTransitionDuration(0)
+    .ringsData([BENIN]).ringColor(() => t => `rgba(252,209,22,${(1 - t) * .9})`)
+    .ringMaxRadius(4.5).ringPropagationSpeed(1.6).ringRepeatPeriod(1300)
+    .pointsData([BENIN]).pointColor(() => '#fcd116').pointAltitude(.03).pointRadius(.35);
+
+  const mat = globe.globeMaterial();
+  mat.color.set('#0b1630'); mat.emissive?.set('#06101f'); mat.shininess = 12;
+
+  const controls = globe.controls();
+  controls.autoRotate = true; controls.autoRotateSpeed = .35; controls.enableDamping = true;
+  let idle;
+  const pause = () => { controls.autoRotate = false; clearTimeout(idle); idle = setTimeout(() => { if (!state.selected) controls.autoRotate = true; }, 15000); };
+  $('globe').addEventListener('pointerdown', pause);
+  $('globe').addEventListener('wheel', pause, { passive: true });
+
+  globe.pointOfView({ lat: 12, lng: 8, altitude: 2.3 }, 0);
+  const resize = () => globe.width(innerWidth).height(innerHeight);
+  addEventListener('resize', resize); resize();
+}
+
+function refreshPolygons() {
+  globe.polygonCapColor(capColor).polygonAltitude(altitude);
+}
+function refreshArcs() {
+  const arcs = state.partners
+    .filter(p => p.a2 && p.a2 !== BENIN.a2 && state.byA2[p.a2])
+    .filter(p => state.filter === 'all' || p.level === state.filter)
+    .map(p => {
+      const c = state.byA2[p.a2].center;
+      return { startLat: BENIN.lat, startLng: BENIN.lng, endLat: c.lat, endLng: c.lng, color: LEVELS[p.level].color, sel: state.selected && state.selected.a2 === p.a2 };
+    });
+  globe.arcsData(arcs);
+}
+
+/* ---------- interface ---------- */
+function renderStats() {
+  const P = state.partners;
+  const amb = P.filter(p => /ambassade/i.test(p.type)).length;
+  const total = state.accords.reduce((s, a) => s + (Number((a.montant || '').replace(/[\s ]/g, '')) || 0), 0);
+  const accN = state.accords.filter(a => a.intitule && !isTbd(a.intitule)).length;
+  $('stats').innerHTML = [
+    [P.length, 'Partenaires'], [amb, 'Ambassades'], [accN, 'Accords'], [total ? fmtNum(String(total)) : '—', 'Montant accords']
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+}
+function renderFilters() {
+  const counts = { all: state.partners.length };
+  state.partners.forEach(p => counts[p.level] = (counts[p.level] || 0) + 1);
+  const opts = [['all', 'Tous', null], ...Object.entries(LEVELS).map(([k, l]) => [k, l.label, l.color])];
+  $('filters').innerHTML = opts.filter(([k]) => k === 'all' || counts[k])
+    .map(([k, l, c]) => `<button class="chip ${state.filter === k ? 'on' : ''}" data-f="${k}">${c ? `<i class="dot" style="color:${c};background:${c}"></i>` : ''}${l} <span style="opacity:.6">${counts[k] || 0}</span></button>`).join('');
+  $('filters').querySelectorAll('button').forEach(b => b.onclick = () => { state.filter = b.dataset.f; renderFilters(); renderList(); refreshPolygons(); refreshArcs(); });
+  $('legend').innerHTML = `<span><i class="dot" style="color:#fcd116;background:#fcd116"></i>Bénin</span>` +
+    Object.values(LEVELS).map(l => `<span><i class="dot" style="color:${l.color};background:${l.color}"></i>${l.label}</span>`).join('');
+}
+function renderList() {
+  const items = state.partners.filter(p => state.filter === 'all' || p.level === state.filter);
+  $('list').innerHTML = items.length ? items.map((p, i) => {
+    const sub = [p.type, p.capitale].filter(v => v && !isTbd(v)).join(' · ') || (p.filled ? '' : 'Fiche à compléter');
+    return `<button class="item ${state.selected && state.selected.pays === p.pays ? 'sel' : ''}" data-i="${state.partners.indexOf(p)}">
+      ${flagImg(p.a2)}<span><span class="nm">${esc(p.name)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>
+      <i class="dot" style="color:${LEVELS[p.level].color};background:${LEVELS[p.level].color}"></i></button>`;
+  }).join('') : '<div class="empty">Aucun partenaire pour ce filtre.</div>';
+  $('list').querySelectorAll('.item').forEach(b => b.onclick = () => { select(state.partners[b.dataset.i]); if (innerWidth < 760) $('side').classList.remove('open'); });
+}
+
+function select(p, feature) {
+  if (p && p.a2 === BENIN.a2 && !partnerOf(state.byA2.BJ)) { p = { a2: 'BJ', name: 'Bénin', pays: 'Bénin', home: true }; }
+  state.selected = p;
+  const f = feature || (p.a2 && state.byA2[p.a2]);
+  globe.controls().autoRotate = false;
+  if (f) globe.pointOfView({ lat: f.center.lat - (innerWidth < 760 ? 18 : 0), lng: f.center.lng + (innerWidth >= 760 ? 18 : 0), altitude: 1.6 }, 1400);
+  refreshPolygons(); refreshArcs(); renderList(); renderDrawer(p);
+}
+function closeDrawer() {
+  if (!state.selected) return;
+  state.selected = null;
+  $('drawer').classList.remove('open'); document.body.classList.remove('drawer-open');
+  refreshPolygons(); refreshArcs(); renderList();
+  globe.pointOfView({ altitude: 2.3 }, 1000);
+  setTimeout(() => { if (!state.selected) globe.controls().autoRotate = true; }, 4000);
+}
+
+const ICON = {
+  mail: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+  phone: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  user: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+  ext: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>',
+  folder: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  close: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+};
+const link = v => !isTbd(v) && /^https?:\/\//i.test(v) ? v : null;
+
+function renderDrawer(p) {
+  const d = $('drawer');
+  const lvl = LEVELS[p.level || 'none'];
+  d.style.setProperty('--accent', p.home ? 'rgba(252,209,22,.35)' : p.ghost ? 'rgba(109,139,214,.25)' : d3.color(lvl.color).copy({ opacity: .35 }).formatRgb());
+
+  const hero = `<div class="hero">
+    <button class="close" aria-label="Fermer" onclick="closeDrawer()">${ICON.close}</button>
+    ${flagImg(p.a2)}
+    <h2>${esc(p.name)}</h2>
+    <div class="cap">${p.capitale && !isTbd(p.capitale) ? 'Capitale · ' + esc(p.capitale) : p.home ? 'Porto-Novo · Cotonou' : '&nbsp;'}</div>
+    ${p.ghost || p.home ? '' : `<div class="badges">
+      <span class="badge"><i class="dot" style="color:${lvl.color};background:${lvl.color}"></i>Activité · ${lvl.label}</span>
+      ${p.type && !isTbd(p.type) ? `<span class="badge">${esc(p.type)}</span>` : ''}
+      ${p.accords.length ? `<span class="badge">${p.accords.filter(a => a.intitule).length} accord${p.accords.length > 1 ? 's' : ''}</span>` : ''}
+    </div>`}
+  </div>`;
+
+  if (p.ghost || p.home) {
+    const msg = p.home
+      ? `<b>Point de départ du réseau</b>Les arcs lumineux relient le Bénin à chacun des ${state.partners.length} partenaires recensés dans le Sheet.`
+      : `<b>Pas encore recensé</b>Ce pays ne figure pas dans l'onglet « ${TABS.partners.name} ». Ajoutez une ligne à son nom dans le Google Sheet puis cliquez sur « Actualiser ».`;
+    d.innerHTML = hero + `<div class="body"><div class="card nodata">${msg}</div></div>
+      <div class="actions"><a class="btn" target="_blank" rel="noopener" href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${TABS.partners.gid}">${ICON.ext} Ouvrir le Google Sheet</a></div>`;
+    d.classList.add('open'); document.body.classList.add('drawer-open');
+    return;
+  }
+
+  const cards = [];
+
+  // Représentation
+  const nomin = fmtDate(p.nomination);
+  cards.push(`<div class="card"><h3>Représentation diplomatique</h3>
+    <div class="amb"><div class="avatar">${!isTbd(p.ambassadeur) && p.ambassadeur ? esc(initials(p.ambassadeur)) : ICON.user}</div>
+      <div><b>${val(p.ambassadeur)}</b><span>Ambassadeur(e)${nomin ? ` · nommé(e) le ${esc(nomin)}` : ''}${since(p.nomination) ? ` <span style="color:var(--faint)">(${since(p.nomination)})</span>` : ''}</span></div></div>
+    <div class="grid2">
+      <div class="kv"><span>Type de représentation</span><b>${val(p.type)}</b></div>
+      <div class="kv"><span>Résidence de l'ambassadeur(e)</span><b>${val(p.residence)}</b></div>
+    </div></div>`);
+
+  // Coopération
+  const doms = (p.domaines || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+  cards.push(`<div class="card"><h3>Coopération <span class="n">${doms.length ? doms.length + ' domaines' : ''}</span></h3>
+    ${doms.length && !isTbd(p.domaines) ? `<div class="tags">${doms.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : val('')}
+    <div class="grid2">
+      <div class="kv kpi"><span>Projets financés</span><b>${fmtNum(p.projets) ? esc(fmtNum(p.projets)) : val('')}</b></div>
+      <div class="kv kpi"><span>Montant mobilisé</span><b title="${esc(fullNum(p.montant))}">${fmtNum(p.montant) ? esc(fmtNum(p.montant)) : val('')}</b></div>
+    </div></div>`);
+
+  // Actualité & agenda
+  const tl = [
+    ['Dernière actualité commune', p.actu, null, 'var(--lvl-high)'],
+    ['Dernière audience', null, p.audience, 'var(--lvl-none)'],
+    ['Dernière interaction', null, p.lastInt, 'var(--lvl-none)'],
+    ['Prochaine actualité à suivre', p.prochActu, null, 'var(--yellow)'],
+    ['Prochaine interaction', null, p.nextInt, 'var(--yellow)'],
+    ['Prochaines actions', p.actions, null, 'var(--lvl-low)']
+  ];
+  cards.push(`<div class="card"><h3>Actualité & agenda</h3><div class="tl">${tl.map(([t, txt, date, c]) => {
+    const body = txt !== null ? `<p>${val(txt)}</p>` : `<p>${fmtDate(date) ? esc(fmtDate(date)) : val('')}</p>${since(date) ? `<time>${since(date)}</time>` : ''}`;
+    return `<div class="tl-i" style="--c:${c}"><small>${t}</small>${body}</div>`;
+  }).join('')}</div></div>`);
+
+  // Accords
+  const accs = p.accords.filter(a => a.intitule && !isTbd(a.intitule));
+  cards.push(`<div class="card"><h3>Accords de coopération <span class="n">${accs.length || ''}</span></h3>
+    ${accs.length ? accs.map(a => {
+      const s = parseDate(a.debut), e = parseDate(a.fin);
+      const pct = s && e ? Math.max(0, Math.min(100, (Date.now() - s) / (e - s) * 100)) : null;
+      return `<div class="acc"><div class="acc-t"><b>${esc(a.intitule)}</b>${a.statut ? `<span class="status" style="${statusStyle(a.statut)}">${esc(a.statut)}</span>` : ''}</div>
+        <div class="acc-m">
+          ${a.institution ? `<span>Partenaire <b>${esc(a.institution)}</b></span>` : ''}
+          ${a.nature ? `<span>Nature <b>${esc(a.nature)}</b></span>` : ''}
+          ${fmtNum(a.montant) ? `<span title="${esc(fullNum(a.montant))}">Montant <b>${esc(fmtNum(a.montant))}</b></span>` : ''}
+          ${a.domaine ? `<span>Domaine <b>${esc(a.domaine)}</b></span>` : ''}
+          ${a.beneficiaire ? `<span>Bénéficiaire <b>${esc(a.beneficiaire)}</b></span>` : ''}
+        </div>
+        ${a.resultats ? `<div class="acc-m" style="margin-top:8px;line-height:1.5">${esc(a.resultats)}</div>` : ''}
+        ${pct !== null ? `<div class="prog"><i style="width:${pct.toFixed(1)}%"></i></div><div class="prog-l"><span>${esc(fmtDate(a.debut))}</span><span>${Math.round(pct)} %</span><span>${esc(fmtDate(a.fin))}</span></div>` : ''}
+      </div>`;
+    }).join('') : `<div style="color:var(--faint);font-size:13px">Aucun accord renseigné dans l'onglet « ${TABS.accords.name} ».</div>`}
+  </div>`);
+
+  // Points focaux
+  const emails = (p.pfEmail || '').split(/[,;\s]+/).filter(e => /@/.test(e));
+  const tels = isTbd(p.pfTel) ? [] : (p.pfTel || '').split(/[,;\/]+/).map(s => s.trim()).filter(Boolean);
+  cards.push(`<div class="card"><h3>Points focaux</h3><div class="contact">
+    <div>${ICON.user}<span>${val(p.pfNoms)}</span></div>
+    ${emails.length ? emails.map(e => `<a href="mailto:${esc(e)}">${ICON.mail}${esc(e)}</a>`).join('') : `<div>${ICON.mail}${val('')}</div>`}
+    ${tels.length ? tels.map(t => `<a href="tel:${esc(t.replace(/[^\d+]/g, ''))}">${ICON.phone}${esc(t)}</a>`).join('') : `<div>${ICON.phone}${val('')}</div>`}
+  </div></div>`);
+
+  // Colonnes ajoutées plus tard au Sheet : affichées automatiquement
+  const extra = Object.entries(p._cells).filter(([h, v]) => !p._used.has(h) && norm(h) && v);
+  if (extra.length) cards.push(`<div class="card"><h3>Autres informations</h3><div class="grid2" style="margin-top:0">${extra.map(([h, v]) => `<div class="kv"><span>${esc(h)}</span><b>${link(v) ? `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a>` : val(v)}</b></div>`).join('')}</div></div>`);
+
+  const site = link(p.site), dossier = link(p.dossier);
+  d.innerHTML = hero + `<div class="body">${cards.join('')}</div>
+    <div class="actions">
+      <a class="btn" ${site ? `href="${esc(site)}" target="_blank" rel="noopener"` : 'aria-disabled="true"'}>${ICON.ext} Site officiel</a>
+      <a class="btn primary" ${dossier ? `href="${esc(dossier)}" target="_blank" rel="noopener"` : 'aria-disabled="true"'}>${ICON.folder} Dossier complet</a>
+    </div>`;
+  d.querySelector('.body').scrollTop = 0;
+  d.classList.add('open'); document.body.classList.add('drawer-open');
+}
+
+/* ---------- recherche ---------- */
+function initSearch() {
+  const q = $('q'), box = $('suggest'); let idx = 0, results = [];
+  const all = () => {
+    const seen = new Set(state.partners.map(p => p.a2).filter(Boolean));
+    return [...state.partners.map(p => ({ p, name: p.name, a2: p.a2, partner: true })),
+      ...state.features.filter(f => f.a2 && !seen.has(f.a2)).map(f => ({ name: f.name, a2: f.a2, partner: false }))];
+  };
+  const draw = () => {
+    box.innerHTML = results.map((r, i) => `<button class="${i === idx ? 'active' : ''}" data-i="${i}">${flagImg(r.a2)}${esc(r.name)}<em>${r.partner ? 'Partenaire' : 'Non recensé'}</em></button>`).join('');
+    box.classList.toggle('open', results.length > 0);
+    box.querySelectorAll('button').forEach(b => b.onmousedown = e => { e.preventDefault(); go(results[b.dataset.i]); });
+  };
+  const go = r => {
+    if (!r) return;
+    q.value = ''; results = []; draw(); q.blur();
+    if (r.partner) select(r.p); else { const f = state.byA2[r.a2]; select({ a2: r.a2, name: r.name, pays: r.name, ghost: true }, f); }
+  };
+  q.oninput = () => {
+    const n = norm(q.value); idx = 0;
+    results = n ? all().filter(r => norm(r.name).includes(n)).sort((a, b) => (b.partner - a.partner) || (norm(a.name).indexOf(n) - norm(b.name).indexOf(n))).slice(0, 8) : [];
+    draw();
+  };
+  q.onkeydown = e => {
+    if (e.key === 'ArrowDown') { idx = Math.min(idx + 1, results.length - 1); draw(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { idx = Math.max(idx - 1, 0); draw(); e.preventDefault(); }
+    else if (e.key === 'Enter') go(results[idx]);
+    else if (e.key === 'Escape') { q.value = ''; results = []; draw(); }
+  };
+  q.onblur = () => setTimeout(() => box.classList.remove('open'), 100);
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.activeElement !== q) closeDrawer();
+    if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+  });
+}
+
+function renderAll() { renderStats(); renderFilters(); renderList(); refreshPolygons(); refreshArcs(); }
+
+/* ---------- démarrage ---------- */
+(async () => {
+  await Promise.all([initGlobe(), loadData()]);
+  renderAll(); initSearch();
+  $('loader').classList.add('hide');
+
+  $('refresh').onclick = async () => {
+    const b = $('refresh'); b.classList.add('spin');
+    const sel = state.selected && state.selected.pays;
+    await loadData(); renderAll();
+    if (sel) { const p = state.partners.find(x => x.pays === sel); if (p) { state.selected = p; renderDrawer(p); } }
+    b.classList.remove('spin');
+  };
+  $('toggleSide').onclick = () => $('side').classList.toggle('open');
+  // resynchronisation automatique toutes les 5 minutes
+  setInterval(() => $('refresh').click(), 5 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
