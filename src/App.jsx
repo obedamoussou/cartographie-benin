@@ -8,18 +8,18 @@ import Search from './components/Search.jsx';
 import Drawer from './components/Drawer.jsx';
 import { Dot, ICON } from './components/ui.jsx';
 
-function Stats({ partners, accords }) {
-  const amb = partners.filter(p => /ambassade/i.test(p.type)).length;
-  const total = accords.reduce((s, a) => s + (Number((a.montant || '').replace(/[\s ]/g, '')) || 0), 0);
-  const accN = accords.filter(a => a.intitule && !isTbd(a.intitule)).length;
-  return [
-    [partners.length, 'Partenaires'], [amb, 'Ambassades'], [accN, 'Accords'], [total ? fmtNum(String(total)) : '—', 'Montant accords']
-  ].map(([b, s]) => <div className="stat" key={s}><b>{b}</b><span>{s}</span></div>);
-}
+// function Stats({ partners, accords }) {
+//   const amb = partners.filter(p => /ambassade/i.test(p.type)).length;
+//   const total = accords.reduce((s, a) => s + (Number((a.montant || '').replace(/[\s ]/g, '')) || 0), 0);
+//   const accN = accords.filter(a => a.intitule && !isTbd(a.intitule)).length;
+//   return [
+//     [partners.length, 'Partenaires'], [amb, 'Ambassades'], [accN, 'Accords'], [total ? fmtNum(String(total)) : '—', 'Montant accords']
+//   ].map(([b, s]) => <div className="stat" key={s}><b>{b}</b><span>{s}</span></div>);
+// }
 
 function Legend() {
   return <>
-    <span><Dot color="#fcd116" />Bénin</span>
+    {/* <span><Dot color="#fcd116" />Bénin</span> */}
     {Object.values(LEVELS).map(l => <span key={l.label}><Dot color={l.color} />{l.label}</span>)}
   </>;
 }
@@ -101,9 +101,9 @@ export default function App() {
     <div className="topbar">
       <div className="brand glass">
         <div className="flagbar"></div>
-        <div><h1>Bénin · Diplomatie</h1><small>Cartographie de la coopération</small></div>
+        <div><h1>Bénin · DGCI</h1><small>Cartographie de la coopération</small></div>
       </div>
-      <div className="stats glass" id="stats">{ready ? <Stats partners={data.partners} accords={data.accords} /> : null}</div>
+      {/* <div className="stats glass" id="stats">{ready ? <Stats partners={data.partners} accords={data.accords} /> : null}</div> */}
       <div className="spacer"></div>
       <button className="toggle-side glass" id="toggleSide" aria-label="Liste des partenaires" onClick={() => setSideOpen(o => !o)}>
         {ICON.menu}

@@ -1,4 +1,5 @@
-import { Fragment } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { color as d3color } from 'd3';
 import { norm, isTbd, parseDate, fmtDate, since, fmtNum, fullNum, initials, link, LEVELS, statusStyle } from '../lib/utils.js';
 import { Flag, Val, Dot, ICON } from './ui.jsx';
@@ -13,7 +14,7 @@ function Hero({ p, lvl, onClose }) {
       {p.ghost || p.home ? null : <div className="badges">
         <span className="badge"><Dot color={lvl.color} />Activité · {lvl.label}</span>
         {p.type && !isTbd(p.type) ? <span className="badge">{p.type}</span> : null}
-        {p.accords.length ? <span className="badge">{p.accords.filter(a => a.intitule).length} accord{p.accords.length > 1 ? 's' : ''}</span> : null}
+        {/* {p.accords.length ? <span className="badge">{p.accords.filter(a => a.intitule).length} accord{p.accords.length > 1 ? 's' : ''}</span> : null} */}
       </div>}
     </div>
   );
@@ -36,6 +37,7 @@ function Cooperation({ p }) {
   const doms = (p.domaines || '').split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
   return (
     <div className="card"><h3>Coopération <span className="n">{doms.length ? doms.length + ' domaines' : ''}</span></h3>
+      <div className="kv" style={{ marginBottom: 12 }}><span>Agence de coopération</span><b><Val v={p.agence} /></b></div>
       {doms.length && !isTbd(p.domaines) ? <div className="tags">{doms.map((t, i) => <span className="tag" key={i}>{t}</span>)}</div> : <Val v="" />}
       <div className="grid2">
         <div className="kv kpi"><span>Projets financés</span><b>{fmtNum(p.projets) ? fmtNum(p.projets) : <Val v="" />}</b></div>
@@ -82,11 +84,39 @@ function Accord({ a }) {
   );
 }
 
+/* Fenêtre centrale listant tous les accords d'un partenaire */
+function AccordsModal({ p, accs, onClose }) {
+  useEffect(() => {
+    // Échap ferme la fenêtre sans fermer la fiche
+    const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); } };
+    addEventListener('keydown', onKey, true);
+    return () => removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="modal-bg" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal glass" role="dialog" aria-modal="true" aria-label={`Accords de coopération · ${p.name}`}>
+        <header>
+          <Flag a2={p.a2} />
+          <div><h2>Accords de coopération</h2><small>{p.name} · {accs.length} accords</small></div>
+          <button className="close" aria-label="Fermer" onClick={onClose}>{ICON.close}</button>
+        </header>
+        <div className="modal-body">{accs.map((a, i) => <Accord a={a} key={i} />)}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Accords({ p }) {
+  const [all, setAll] = useState(false);
+  const close = useCallback(() => setAll(false), []);
   const accs = p.accords.filter(a => a.intitule && !isTbd(a.intitule));
   return (
-    <div className="card"><h3>Accords de coopération <span className="n">{accs.length || ''}</span></h3>
-      {accs.length ? accs.map((a, i) => <Accord a={a} key={i} />) : <div style={{ color: 'var(--faint)', fontSize: 13 }}>Aucun accord renseigné.</div>}
+    <div className="card"><h3>Accords de coopération en cours <span className="n">{accs.length || ''}</span></h3>
+      {accs.length ? <Accord a={accs[0]} /> : <div style={{ color: 'var(--faint)', fontSize: 13 }}>Aucun accord renseigné.</div>}
+      {accs.length > 1 ? <button className="more" onClick={() => setAll(true)}>Tout voir <span>{accs.length}</span></button> : null}
+      {all ? <AccordsModal p={p} accs={accs} onClose={close} /> : null}
     </div>
   );
 }
