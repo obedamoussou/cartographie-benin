@@ -145,6 +145,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .modal small{color:var(--muted);font-size:12.5px}
 .modal .close{margin-left:auto;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.25);display:grid;place-items:center;flex:none}
 .modal .close:hover{border-color:var(--line-strong)}
+.modal-search{position:relative;display:flex;align-items:center;margin:14px 20px 4px}
+.modal-search>svg{position:absolute;left:14px;opacity:.6;pointer-events:none}
+.modal-search input{width:100%;padding:11px 70px 11px 40px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font:inherit;outline:none}
+.modal-search input:focus{border-color:rgba(252,209,22,.5)}
+.modal-search em{position:absolute;right:14px;font-style:normal;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .modal-body{overflow:auto;padding:6px 20px 18px}
 .modal-body .acc{padding:16px 0}
 .modal-body .acc:first-of-type{padding-top:12px}

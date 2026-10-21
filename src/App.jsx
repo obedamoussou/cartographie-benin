@@ -66,7 +66,8 @@ export default function App() {
     setData(next);
     if (sel) {
       const p = next.partners.find(x => x.pays === sel);
-      if (p) { selectedRef.current = p; setSelected(p); showDrawer(p); }
+      // mise à jour sur place : la fiche garde son défilement et la fenêtre des accords reste ouverte
+      if (p) { selectedRef.current = p; setSelected(p); setDrawer(d => ({ ...d, p })); }
     }
     setSpinning(false);
   };
@@ -101,7 +102,8 @@ export default function App() {
     <div className="topbar">
       <div className="brand glass">
         <div className="flagbar"></div>
-        <div><h1>Bénin · DGCI</h1><small>Cartographie de la coopération</small></div>
+        <div><h1>Bénin · DGCI</h1></div>
+        {/* <small>Cartographie de la coopération</small> */}
       </div>
       {/* <div className="stats glass" id="stats">{ready ? <Stats partners={data.partners} accords={data.accords} /> : null}</div> */}
       <div className="spacer"></div>

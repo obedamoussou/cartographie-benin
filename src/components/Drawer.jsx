@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { color as d3color } from 'd3';
 import { norm, isTbd, parseDate, fmtDate, since, fmtNum, fullNum, initials, link, LEVELS, statusStyle } from '../lib/utils.js';
@@ -14,6 +14,7 @@ function Hero({ p, lvl, onClose }) {
       {p.ghost || p.home ? null : <div className="badges">
         <span className="badge"><Dot color={lvl.color} />Activité · {lvl.label}</span>
         {p.type && !isTbd(p.type) ? <span className="badge">{p.type}</span> : null}
+        {p.residence && !isTbd(p.residence) ? <span className="badge">{p.residence}</span> : null}
         {/* {p.accords.length ? <span className="badge">{p.accords.filter(a => a.intitule).length} accord{p.accords.length > 1 ? 's' : ''}</span> : null} */}
       </div>}
     </div>
@@ -26,10 +27,11 @@ function Representation({ p }) {
     <div className="card"><h3>Représentation diplomatique</h3>
       <div className="amb"><div className="avatar">{!isTbd(p.ambassadeur) && p.ambassadeur ? initials(p.ambassadeur) : ICON.user}</div>
         <div><b><Val v={p.ambassadeur} /></b><span>Ambassadeur(e){nomin ? ` · nommé(e) le ${nomin}` : ''}{since(p.nomination) ? <> <span style={{ color: 'var(--faint)' }}>({since(p.nomination)})</span></> : null}</span></div></div>
-      <div className="grid2">
+      {/* <div className="grid2">
         <div className="kv"><span>Type de représentation</span><b><Val v={p.type} /></b></div>
         <div className="kv"><span>Résidence de l'ambassadeur(e)</span><b><Val v={p.residence} /></b></div>
-      </div></div>
+      </div> */}
+    </div>
   );
 }
 
@@ -40,8 +42,8 @@ function Cooperation({ p }) {
       <div className="kv" style={{ marginBottom: 12 }}><span>Agence de coopération</span><b><Val v={p.agence} /></b></div>
       {doms.length && !isTbd(p.domaines) ? <div className="tags">{doms.map((t, i) => <span className="tag" key={i}>{t}</span>)}</div> : <Val v="" />}
       <div className="grid2">
-        <div className="kv kpi"><span>Projets financés</span><b>{fmtNum(p.projets) ? fmtNum(p.projets) : <Val v="" />}</b></div>
-        <div className="kv kpi"><span>Montant mobilisé</span><b title={fullNum(p.montant)}>{fmtNum(p.montant) ? fmtNum(p.montant) : <Val v="" />}</b></div>
+        <div className="kv kpi"><span>Nombre de projets financés</span><b>{fmtNum(p.projets) ? fmtNum(p.projets) : <Val v="" />}</b></div>
+        <div className="kv kpi"><span>Montant mobilisé en cours</span><b title={fullNum(p.montant)}>{fmtNum(p.montant) ? fmtNum(p.montant) : <Val v="" />}</b></div>
       </div></div>
   );
 }
@@ -86,12 +88,27 @@ function Accord({ a }) {
 
 /* Fenêtre centrale listant tous les accords d'un partenaire */
 function AccordsModal({ p, accs, onClose }) {
+  const [q, setQ] = useState('');
+  const query = useRef(q); query.current = q;
+  const input = useRef(null);
   useEffect(() => {
-    // Échap ferme la fenêtre sans fermer la fiche
-    const onKey = e => { if (e.key === 'Escape') { e.stopImmediatePropagation(); onClose(); } };
+    input.current.focus();
+    const onKey = e => {
+      // Échap vide d'abord la recherche, puis ferme la fenêtre sans fermer la fiche
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); if (query.current) setQ(''); else onClose(); }
+      // « / » s'écrit dans ce champ au lieu d'ouvrir la recherche de pays
+      if (e.key === '/' && document.activeElement === input.current) e.stopImmediatePropagation();
+    };
     addEventListener('keydown', onKey, true);
     return () => removeEventListener('keydown', onKey, true);
   }, [onClose]);
+
+  // chaque mot saisi doit apparaître dans l'une des colonnes de l'accord (sans tenir compte des accents ni de la casse)
+  const words = q.split(/\s+/).map(norm).filter(Boolean);
+  const shown = words.length ? accs.filter(a => {
+    const text = norm([...Object.values(a._cells), fmtDate(a.debut), fmtDate(a.fin), fmtNum(a.montant)].join(' '));
+    return words.every(w => text.includes(w));
+  }) : accs;
 
   return createPortal(
     <div className="modal-bg" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -101,7 +118,14 @@ function AccordsModal({ p, accs, onClose }) {
           <div><h2>Accords de coopération</h2><small>{p.name} · {accs.length} accords</small></div>
           <button className="close" aria-label="Fermer" onClick={onClose}>{ICON.close}</button>
         </header>
-        <div className="modal-body">{accs.map((a, i) => <Accord a={a} key={i} />)}</div>
+        <div className="modal-search">
+          {ICON.search}
+          <input ref={input} value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher par mot clé : intitulé, institution, domaine, statut…" autoComplete="off" aria-label="Rechercher un accord" />
+          {q ? <em>{shown.length} / {accs.length}</em> : null}
+        </div>
+        <div className="modal-body">{shown.length
+          ? shown.map(a => <Accord a={a} key={accs.indexOf(a)} />)
+          : <div className="empty">Aucun accord ne correspond à « {q.trim()} ».</div>}</div>
       </div>
     </div>,
     document.body
