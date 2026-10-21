@@ -38,7 +38,7 @@ const PARTNER_FIELDS = {
   ambassadeur: ['nometprenom', 'nomsetprenomdelamb', 'ambassadeur'], nomination: ['datedenomination'],
   pfNoms: ['nomsetprenomsdespoints', 'nometprenomsdespoints', 'pointsfocaux'], pfEmail: ['emaildespoints', 'email'], pfTel: ['telephonedespoints', 'telephone'],
   site: ['siteofficiel'], agence: ['agencedecooperation', 'agence'], domaines: ['domainesdecooperation', 'domainedecooperation'], niveau: ['niveaudactivite', 'niveau'],
-  projets: ['nombredeprojets'], montant: ['montantmobilise'], audience: ['datedeladerniereaudience'],
+  projets: ['nombredeprojets'], montant: ['financement'], audience: ['datedeladerniereaudience'],
   actu: ['derniereactualite'], prochActu: ['prochaineactualite'], lastInt: ['datedeladerniereinteraction'], nextInt: ['datedelaprochaineinteraction'],
   actions: ['prochainesactions'], dossier: ['liendudossier']
 };
