@@ -87,7 +87,7 @@ function Accord({ a }) {
 }
 
 /* Fenêtre centrale listant tous les accords d'un partenaire */
-function AccordsModal({ p, accs, onClose }) {
+function AccordsModal({ p, accs, onClose })  {
   const [q, setQ] = useState('');
   const query = useRef(q); query.current = q;
   const input = useRef(null);
