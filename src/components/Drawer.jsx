@@ -42,8 +42,8 @@ function Cooperation({ p }) {
       <div className="kv" style={{ marginBottom: 12 }}><span>Agence de coopération</span><b><Val v={p.agence} /></b></div>
       {doms.length && !isTbd(p.domaines) ? <div className="tags">{doms.map((t, i) => <span className="tag" key={i}>{t}</span>)}</div> : <Val v="" />}
       <div className="grid2">
-        <div className="kv kpi"><span>Nombre de projets financés</span><b>{fmtNum(p.projets) ? fmtNum(p.projets) : <Val v="" />}</b></div>
-        <div className="kv kpi"><span>Montant mobilisé en cours</span><b title={fullNum(p.montant)}>{fmtNum(p.montant) ? fmtNum(p.montant) : <Val v="" />}</b></div>
+        <div className="kv kpi"><span>Nombre de projets en cours</span><b>{fmtNum(p.projets) ? fmtNum(p.projets) : <Val v="" />}</b></div>
+        <div className="kv kpi"><span>Financement en cours</span><b title={fullNum(p.montant)}>{fmtNum(p.montant) ? fmtNum(p.montant) : <Val v="" />}</b></div>
       </div></div>
   );
 }
